@@ -1,0 +1,6 @@
+specVersion: 0.36.0
+name: textfsm-service
+runtime: go
+created: 2024-06-08T05:06:05.683582397Z
+registry: ghcr.io/mindwm/kubernetes-context
+
