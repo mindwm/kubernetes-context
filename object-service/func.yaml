@@ -1,0 +1,5 @@
+specVersion: 0.36.0
+name: object-service
+runtime: go
+created: 2024-06-08T05:04:42.284709754Z
+registry: ghcr.io/mindwm/kubernetes-context
