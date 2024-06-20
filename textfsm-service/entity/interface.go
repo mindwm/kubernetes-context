@@ -1,8 +1,6 @@
 package entity
 
-import (
-	"strconv"
-)
+import "strconv"
 
 type Interface struct {
 	Name    string `json:"name"`

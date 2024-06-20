@@ -24,14 +24,9 @@ func TestHandle(t *testing.T) {
 	}
 
 	// Act
-	event, err := Handle(context.Background(), e)
+	err := Handle(context.Background(), e)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Assert
-	if event == nil {
-		t.Errorf("received nil event") // fail on nil
-	}
-	fmt.Println(event)
+	fmt.Println(err)
 }
