@@ -13,7 +13,8 @@ import (
 
 type Repository interface {
 	GetIODocumentByID(ctx context.Context, ioDocumentID int) (entity.IODocument, error)
-	AddInterfacesToNode(ctx context.Context, nodeID int, iface entity.Interface) error
+	AddInterfaceToNode(ctx context.Context, nodeID int, iface entity.Interface) error
+	AddPodToNode(ctx context.Context, nodeID int, pod entity.Pod) error
 }
 
 // Handle an HTTP Request.
@@ -51,7 +52,21 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 			}
 
 			for _, iface := range networkInfo {
-				err = repository.AddInterfacesToNode(ctx, nodeID, iface)
+				err = repository.AddInterfaceToNode(ctx, nodeID, iface)
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+			}
+		} else if parser.IsKubectlGetPods(ioDoc.UserInput) {
+			pods, err := parser.ParseKubectlGetPodsOutput(ioDoc.Output)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			for _, pod := range pods {
+				err = repository.AddPodToNode(ctx, nodeID, pod)
 				if err != nil {
 					fmt.Println(err)
 					return nil

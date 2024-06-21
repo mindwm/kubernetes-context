@@ -74,7 +74,7 @@ func convertRecordToIODocument(record *neo4j.Record) (entity.IODocument, error) 
 	return ioDoc, nil
 }
 
-func (r Repository) AddInterfacesToNode(ctx context.Context, nodeID int, iface entity.Interface) error {
+func (r Repository) AddInterfaceToNode(ctx context.Context, nodeID int, iface entity.Interface) error {
 	const op = "Neo4j.Repository.AddInterfaceToNode"
 
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
@@ -102,6 +102,48 @@ func (r Repository) AddInterfacesToNode(ctx context.Context, nodeID int, iface e
 			"rx_bts": iface.RxBytes,
 			"tx_pkt": iface.TxPkt,
 			"tx_bts": iface.TxBytes,
+		}
+
+		result, err := tx.Run(ctx, query, params)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, result.Err()
+	})
+	if err != nil {
+		return fmt.Errorf("%s:%v", op, err)
+	}
+
+	return nil
+}
+
+func (r Repository) AddPodToNode(ctx context.Context, nodeID int, pod entity.Pod) error {
+	const op = "Neo4j.Repository.AddPodToNode"
+
+	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `
+            MATCH (n)
+            WHERE id(n) = $nodeId
+            CREATE (n)-[:HAS_POD]->(p:Pod {
+                name: $name,
+                ready: $ready,
+                status: $status,
+                restarts: $restarts,
+                age: $age
+            })
+            RETURN id(p)
+        `
+		params := map[string]interface{}{
+			"nodeId":   nodeID,
+			"name":     pod.Name,
+			"ready":    pod.Ready,
+			"status":   pod.Status,
+			"restarts": pod.Restarts,
+			"age":      pod.Age,
 		}
 
 		result, err := tx.Run(ctx, query, params)
