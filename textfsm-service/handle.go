@@ -15,6 +15,7 @@ type Repository interface {
 	GetIODocumentByID(ctx context.Context, ioDocumentID int) (entity.IODocument, error)
 	AddInterfaceToNode(ctx context.Context, nodeID int, iface entity.Interface) error
 	AddPodToNode(ctx context.Context, nodeID int, pod entity.Pod) error
+	AddServiceToNode(ctx context.Context, nodeID int, service entity.Service) error
 }
 
 // Handle an HTTP Request.
@@ -67,6 +68,20 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 
 			for _, pod := range pods {
 				err = repository.AddPodToNode(ctx, nodeID, pod)
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+			}
+		} else if parser.IsKubectlGetServices(ioDoc.UserInput) {
+			services, err := parser.ParseKubectlGetSvcOutput(ioDoc.Output)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			for _, service := range services {
+				err = repository.AddServiceToNode(ctx, nodeID, service)
 				if err != nil {
 					fmt.Println(err)
 					return nil

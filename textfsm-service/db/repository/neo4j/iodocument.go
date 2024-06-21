@@ -159,3 +159,47 @@ func (r Repository) AddPodToNode(ctx context.Context, nodeID int, pod entity.Pod
 
 	return nil
 }
+
+func (r Repository) AddServiceToNode(ctx context.Context, nodeID int, service entity.Service) error {
+	const op = "Neo4j.Repository.AddServiceToNode"
+
+	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `
+            MATCH (n)
+            WHERE id(n) = $nodeId
+            CREATE (n)-[:HAS_SERVICE]->(s:Service {
+                name: $name,
+                type: $type,
+                cluster_ip: $cluster_ip,
+                external_ip: $external_ip,
+				ports: $ports,
+                age: $age
+            })
+            RETURN id(s)
+        `
+		params := map[string]interface{}{
+			"nodeId":      nodeID,
+			"name":        service.Name,
+			"type":        service.Type,
+			"cluster_ip":  service.ClusterIP,
+			"external_ip": service.ExternalIP,
+			"ports":       service.Ports,
+			"age":         service.Age,
+		}
+
+		result, err := tx.Run(ctx, query, params)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, result.Err()
+	})
+	if err != nil {
+		return fmt.Errorf("%s:%v", op, err)
+	}
+
+	return nil
+}
