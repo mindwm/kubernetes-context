@@ -21,14 +21,16 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 	var cloudEventData entity.CloudEventData
 	if err := event.DataAs(&cloudEventData); err != nil {
 		fmt.Println(err)
+		return nil
 	}
 
 	if isRelationship(cloudEventData) {
 		nodeID, err := strconv.Atoi(cloudEventData.Payload.End.ID)
 		if err != nil {
 			fmt.Println(err)
-			return err
+			return nil
 		}
+
 		fmt.Println(nodeID)
 
 		driver := db.InitNeo4j(ctx)
@@ -38,21 +40,21 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 		ioDoc, err := repository.GetIODocumentByID(ctx, nodeID)
 		if err != nil {
 			fmt.Println(err)
-			return err
+			return nil
 		}
 
 		if parser.IsIfConfig(ioDoc.UserInput) {
 			networkInfo, err := parser.ParseIfConfigOutput(ioDoc.Output)
 			if err != nil {
 				fmt.Println(err)
-				return err
+				return nil
 			}
 
 			for _, iface := range networkInfo {
 				err = repository.AddInterfacesToNode(ctx, nodeID, iface)
 				if err != nil {
 					fmt.Println(err)
-					return err
+					return nil
 				}
 			}
 		}

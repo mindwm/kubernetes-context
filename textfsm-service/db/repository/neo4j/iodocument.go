@@ -22,36 +22,19 @@ func (r Repository) GetIODocumentByID(ctx context.Context, ioDocumentID int) (en
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(ctx)
 
-	records, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
-		query := `
-        MATCH (n:IoDocument) 
-        WHERE id(n) = $id
-        RETURN n`
-
-		params := map[string]any{
-			"id": ioDocumentID,
-		}
-
-		result, err := tx.Run(ctx, query, params)
-		if err != nil {
-			return nil, err
-		}
-
-		records, err := result.Collect(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		return records, nil
-	})
-	if err != nil || len(records.([]*neo4j.Record)) == 0 {
-		return entity.IODocument{}, fmt.Errorf("%s:%s", op, "xui")
-	}
-
-	record := records.([]*neo4j.Record)[0]
-	ioDoc, err := convertRecordToIODocument(record)
+	query := "MATCH (n) WHERE ID(n) = $ioDocumentID RETURN n"
+	result, err := session.Run(ctx, query, map[string]interface{}{"ioDocumentID": ioDocumentID})
 	if err != nil {
 		return entity.IODocument{}, fmt.Errorf("%s:%v", op, err)
+	}
+
+	var ioDoc entity.IODocument
+	if result.Next(ctx) {
+		record := result.Record()
+		ioDoc, err = convertRecordToIODocument(record)
+		if err != nil {
+			return entity.IODocument{}, fmt.Errorf("%s:%v", op, err)
+		}
 	}
 
 	return ioDoc, nil
