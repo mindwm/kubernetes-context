@@ -203,3 +203,42 @@ func (r Repository) AddServiceToNode(ctx context.Context, nodeID int, service en
 
 	return nil
 }
+
+func (r Repository) AddNamespaceToNode(ctx context.Context, nodeID int, namespace entity.NameSpace) error {
+	const op = "Neo4j.Repository.AddNamespaceToNode"
+
+	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `
+            MATCH (n)
+            WHERE id(n) = $nodeId
+            CREATE (n)-[:HAS_NAMESPACE]->(na:Namespace {
+                name: $name,
+                status: $status,
+                age: $age
+            })
+            RETURN id(na)
+        `
+		params := map[string]interface{}{
+			"nodeId": nodeID,
+			"name":   namespace.Name,
+			"status": namespace.Status,
+			"age":    namespace.Age,
+		}
+
+		result, err := tx.Run(ctx, query, params)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, result.Err()
+	})
+
+	if err != nil {
+		return fmt.Errorf("%s:%v", op, err)
+	}
+
+	return nil
+}

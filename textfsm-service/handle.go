@@ -16,6 +16,7 @@ type Repository interface {
 	AddInterfaceToNode(ctx context.Context, nodeID int, iface entity.Interface) error
 	AddPodToNode(ctx context.Context, nodeID int, pod entity.Pod) error
 	AddServiceToNode(ctx context.Context, nodeID int, service entity.Service) error
+	AddNamespaceToNode(ctx context.Context, nodeID int, namespace entity.NameSpace) error
 }
 
 // Handle an HTTP Request.
@@ -33,8 +34,6 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 			return nil
 		}
 
-		fmt.Println(nodeID)
-
 		driver := db.InitNeo4j(ctx)
 		defer driver.Close(ctx)
 		var repository Repository = neo4jRepo.NewRepository(driver)
@@ -44,6 +43,7 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 			fmt.Println(err)
 			return nil
 		}
+		fmt.Println(ioDoc.Output)
 
 		if parser.IsIfConfig(ioDoc.UserInput) {
 			networkInfo, err := parser.ParseIfConfigOutput(ioDoc.Output)
@@ -51,6 +51,8 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 				fmt.Println(err)
 				return nil
 			}
+
+			fmt.Println(len(networkInfo))
 
 			for _, iface := range networkInfo {
 				err = repository.AddInterfaceToNode(ctx, nodeID, iface)
@@ -65,6 +67,8 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 				fmt.Println(err)
 				return nil
 			}
+
+			fmt.Println(len(pods))
 
 			for _, pod := range pods {
 				err = repository.AddPodToNode(ctx, nodeID, pod)
@@ -82,6 +86,21 @@ func Handle(ctx context.Context, event cloudevents.Event) error {
 
 			for _, service := range services {
 				err = repository.AddServiceToNode(ctx, nodeID, service)
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+			}
+		} else if parser.IsKubectlGetNamespaces(ioDoc.UserInput) {
+			namespaces, err := parser.ParseKubectlGetNsOutput(ioDoc.Output)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+			fmt.Println(len(namespaces))
+
+			for _, namespace := range namespaces {
+				err = repository.AddNamespaceToNode(ctx, nodeID, namespace)
 				if err != nil {
 					fmt.Println(err)
 					return nil
